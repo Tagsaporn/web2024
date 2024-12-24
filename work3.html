@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+      crossorigin="anonymous"
+    />
+  </head>
+  <body>
+    <div id="myapp" class="container p-4"></div>
+    <script type="text/babel">
+      // Menu Component
+      function Menu({ app }) {
+        return (
+          <div className="text-center">
+            <h3>ทบทวนความรู้ฟิสิกส์ ม.4</h3>
+            <button
+              className="btn btn-primary"
+              onClick={() => app.setState({ status: 1 })}
+            >
+              เริ่มทำแบบทดสอบ
+            </button>
+          </div>
+        );
+      }
+
+      // QBlock Component
+      function QBlock({ q, i, app }) {
+        const handleChange = (event) => {
+          const name = event.target.name;
+          const value = event.target.value;
+          const answers = { ...app.state.answers, [name]: value };
+          app.setState({ answers });
+        };
+
+        return (
+          <div className="mb-3">
+            <h5>
+              {i + 1}. <span dangerouslySetInnerHTML={{ __html: q.title }}></span>
+            </h5>
+            {q.options.map((option, index) => (
+              <div key={index}>
+                <input
+                  type="radio"
+                  name={`q${i}`}
+                  value={index + 1}
+                  onChange={handleChange}
+                />{" "}
+                {option}
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      // QList Component
+      function QList({ list, app, onSubmit }) {
+        return (
+          <div>
+            {list.map((q, i) => (
+              <QBlock key={i} q={q} i={i} app={app} />
+            ))}
+            <button className="btn btn-success mt-3" onClick={onSubmit}>
+              ส่งคำตอบ
+            </button>
+          </div>
+        );
+      }
+
+      // ShowScore Component
+      function ShowScore({ app }) {
+        return (
+          <div className="text-center">
+            <h3>คุณได้คะแนน {app.state.score}</h3>
+            <button
+              className="btn btn-primary"
+              onClick={() => app.setState({ status: 0, answers: {}, score: 0 })}
+            >
+              เริ่มใหม่
+            </button>
+          </div>
+        );
+      }
+
+      // App Component
+      class App extends React.Component {
+        state = {
+          qlist: [], // รายการคำถาม
+          status: 0, // สถานะ: 0 = Menu, 1 = Quiz, 2 = ShowScore
+          answers: {}, // คำตอบ
+          score: 0, // คะแนนรวม
+        };
+
+        // โหลดข้อมูล
+        async componentDidMount() {
+          try {
+            const res = await fetch("quiz3.json");
+            const qlist = await res.json();
+            this.setState({ qlist });
+          } catch (error) {
+            console.error("Error loading quiz data:", error);
+          }
+        }
+
+        // คำนวณคะแนน
+        checkAnswer = () => {
+          const { qlist, answers } = this.state;
+          const score = qlist.reduce((total, q, i) => {
+            return total + (q.answer == answers[`q${i}`] ? 1 : 0);
+          }, 0);
+          this.setState({ status: 2, score });
+        };
+
+        render() {
+          let content;
+
+          if (this.state.status === 0) {
+            content = <Menu app={this} />;
+          } else if (this.state.status === 1) {
+            content = (
+              <QList list={this.state.qlist} app={this} onSubmit={this.checkAnswer} />
+            );
+          } else if (this.state.status === 2) {
+            content = <ShowScore app={this} />;
+          }
+
+          return (
+            <div className="card">
+              <div className="card-header text-center">แบบทดสอบออนไลน์</div>
+              <div className="card-body">{content}</div>
+              <div className="card-footer text-center">By 653380198-5 Tagsaporn Moonmanee <br/>College of Computing, Khon Kaen University
+          </div>;
+            </div>
+          );
+        }
+      }
+
+      // Render the App Component
+      const container = document.getElementById("myapp");
+      const root = ReactDOM.createRoot(container);
+      root.render(<App />);
+    </script>
+  </body>
+</html>
